@@ -74,7 +74,7 @@ plotWavelengths = [450 700];
 % of the device.  The layer thicknesses are in nanometers.
 
 layers =  { 'glass'  'FTO_PEC' 'hematite2'  'water' 'glass'}; % Names of layers of materials starting from side light is incident from
-thicknesses = [0   100  activelayerthickness 1000 0];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
+thicknesses = [1000   100  activelayerthickness 1000 1000];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
 % Set plotGeneration to 'true' if you want to plot generation rate as a
 % function of position in the device and output the calculated short circuit current
 % under AM1.5G illumination (assuming 100% internal quantum efficiency)
