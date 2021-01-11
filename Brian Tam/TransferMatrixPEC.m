@@ -47,7 +47,7 @@
 % 3/5/15 Improved precision of fundamental constants
 
 
-function [Absorption, Reflection, Transmission, absCoeff, activeLayer, lambda, maxJsc]= TransferMatrixPEC(activelayerthickness)
+function [Absorption, Reflection, Transmission, absCoeff, activeLayer, lambda, maxJsc] = TransferMatrixPEC(activelayerthickness)
 %------------BEGIN USER INPUT PARAMETERS SPECITIFCATION---------------
 %
 lambda=300:1:900; % Wavelengths over which field patterns are calculated
@@ -73,8 +73,8 @@ plotWavelengths = [450 700];
 % layers are on the reflective electrode (rather than transparent electrode) side 
 % of the device.  The layer thicknesses are in nanometers.
 
-layers =  { 'glass'  'FTO_PEC' 'hematite2'  'water' 'glass'}; % Names of layers of materials starting from side light is incident from
-thicknesses = [0   100  activelayerthickness 1000 0];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
+layers = {'glass'  'FTO_PEC' 'BiVO4'  'water' 'glass'}; % Names of layers of materials starting from side light is incident from
+thicknesses = [1000 100 activelayerthickness 1000 1000];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
 % Set plotGeneration to 'true' if you want to plot generation rate as a
 % function of position in the device and output the calculated short circuit current
 % under AM1.5G illumination (assuming 100% internal quantum efficiency)
@@ -240,7 +240,7 @@ if plotGeneration == true
 
     % outputs predicted Jsc under AM1.5 illumination assuming 100% internal
     % quantum efficiency at all wavelengths
-    Jsc=sum(Gx)*stepsize*1e-7*q*1e3 %in mA/cm^2
+    Jsc = sum(Gx)*stepsize*1e-7*q*1e3 %in mA/cm^2
     maxJsc = Jsc;
 
     % Calculate parasitic absorption
@@ -323,7 +323,7 @@ legend
 grid on
     
     
-    % sends absorption, reflection, and wavelength data to the workspace
+%     sends absorption, reflection, and wavelength data to the workspace
 %     assignin('caller','check_balance_abs',checkBalanceAbs);
 %     assignin('caller','check_balance_overall',checkBalanceOverall);
     
@@ -335,16 +335,16 @@ end
 % transmission at an interface between materials with complex dielectric 
 % constant n1 and n2.
 function I = I_mat(n1,n2)
-r=(n1-n2)/(n1+n2);
-t=2*n1/(n1+n2);
-I=[1 r; r 1]/t;
+r = (n1-n2)/(n1+n2);
+t = 2*n1/(n1+n2);
+I = [1 r; r 1]/t;
 
 % Function L_mat
 % This function calculates the propagation matrix, L, through a material of
 % complex dielectric constant n and thickness d for the wavelength lambda.
 function L = L_mat(n,d,lambda)
-xi=2*pi*n/lambda;
-L=[exp(-1i*xi*d) 0; 0 exp(1i*xi*d)];
+xi = 2*pi*n/lambda;
+L = [exp(-1i*xi*d) 0; 0 exp(1i*xi*d)];
 
 % Function LoadRefrIndex
 % This function returns the complex index of refraction spectra, ntotal, for the
@@ -357,26 +357,26 @@ function ntotal = LoadRefrIndex(name,wavelengths)
 
 %Data in IndRefr, Column names in IndRefr_names
 %[IndRefr,IndRefr_names]=xlsread('Index_of_Refraction_library.xls');
-nkfile=fopen([name '_nk.txt']);
-nkarray=textscan(nkfile,'%f %f %f','HeaderLines', 0);
+nkfile = fopen([name '_nk.txt']);
+nkarray = textscan(nkfile,'%f %f %f','HeaderLines', 0);
 fclose(nkfile);
 % Load index of refraction data in spread sheet, will crash if misspelled
 file_wavelengths=nkarray{1}*1e9;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
-if (strfind(name,'P3HT'))
-% file_wavelengths=nkarray{1}*1e9+30;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
-end
-n=nkarray{2};%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
-k=nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-if (strfind(name,'P3HT'))
-% n=nkarray{2}+1.5;%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
-
-% k=max(nkarray{3},0.001);%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-% k=nkarray{3}+0.9*nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-
-end
+% if (strfind(name,'P3HT'))
+% % file_wavelengths=nkarray{1}*1e9+30;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
+% end
+n = nkarray{2};%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
+k = nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
+% if (strfind(name,'P3HT'))
+% % n=nkarray{2}+1.5;%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
+% 
+% % k=max(nkarray{3},0.001);%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
+% % k=nkarray{3}+0.9*nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
+% 
+% end
 % Interpolate/Extrapolate data linearly to desired wavelengths
-n_interp=interp1(file_wavelengths, n, wavelengths, 'linear', 'extrap');
-k_interp=interp1(file_wavelengths, k, wavelengths, 'linear', 'extrap');
+n_interp = interp1(file_wavelengths, n, wavelengths, 'linear', 'extrap');
+k_interp = interp1(file_wavelengths, k, wavelengths, 'linear', 'extrap');
 
 %Return interpolated complex index of refraction data
 ntotal = n_interp+1i*k_interp; 
