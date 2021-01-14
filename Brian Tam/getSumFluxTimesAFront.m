@@ -9,7 +9,7 @@ spectrumData = load('spectrum.mat');  %mA.cm-2.nm-1
 flux = (spectrumData.fluxLambda).';
 fluxRange = (spectrumData.lambda).';
 fluxInterp = interp1(fluxRange, flux, lambdaPEC, 'linear', 'extrap');
-q = 1.602e-19; %C
+q = 1.602e-19; %CT
 photonFlux = fluxInterp./q; %in cm-2.s-1.nm-1
 
 % absorbedFluxmAcm2 = sum(fluxInterp.*absorption(activeLayer, :), 2); %in mA/cm2

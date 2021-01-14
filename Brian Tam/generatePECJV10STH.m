@@ -1,13 +1,13 @@
 
 %PECJV is in terms of V and A/m2
-function PECJV = generatePECJV10STH(isFrontIlluminatedOrNot, PECThickness)
+function PECJV = generatePECJV10STH(isFrontIlluminatedOrNot, PECThickness, PVThickness)
 %PEC Electrical Model (Assume front illuminated for now)
-deviceName = 'nil'
+deviceName = 'PEC_hematite'
 
 if isFrontIlluminatedOrNot == 1
-    fileName = append(deviceName, '_PECFrontIlluminated');
+    fileName = append(deviceName, '_FrontIlluminated');
 elseif isFrontIlluminatedOrNot == 0
-    fileName = append(deviceName, '_PECBackIlluminated');
+    fileName = append(deviceName, '_BackIlluminated');
 end
 %--------------------USER INPUT PARAMETERS------------------------------
 
@@ -16,13 +16,18 @@ plotIndJV = 1; %whether or not you want to plot the JV curves of each individual
 showInterpPlots = 0; %shows the interpolated values of each JV curve based on J vector
 isFrontIlluminated = isFrontIlluminatedOrNot; %whether or not PV-PEC tandem is back or front illuminated
 PECActiveLayerThickness = PECThickness; %in nm
-
+PVActiveLayerThickness = PVThickness; %in nm
 
 %--------------------Overall Model Parameters---------------------------
 vStepSize = 0.01; %step size for voltage that each JV curve for each component will be evaluated on
-V = 0:vStepSize:2;
+V = 0:vStepSize:2; %voltage range that each JV curve for each component will be evaluated on
 pH = 13.9; %6.7;
-deltaU = 0.6; %0.46;%this is the additional thermodynamic potential required by the external bias to provide for the PEC system in question
+
+deltaU = 0.42; %0.6;%this is the additional thermodynamic potential provided by the external bias to provide for the PEC system in question
+% Brian - 0.6 is wrong. It assumes it's counting from 0 Vs RHE, but in this
+% calculation it's counting from the Ufb, so, here Ufb is set as 0.18 from
+% Anna's paper I assume and it's 0.18 vs RHE. so the real delta U =
+% 0.6-0.18 = 0.42  ~~ unles 0.6 is the onset for hematite ?????
 
 %----------------------Cathode Parameters-------------------------------
 jc0 = 3.1; %exchange current density for the hydrogen evolution reaction (A.m-1)
@@ -38,9 +43,9 @@ t_c = 0.1/1000; %thickness of cathode in m (need to get this info)
 
 %------------------Photoanode Parameters-----------------------------------
 %Phi_surf = ones(size(V)); %surface recombination factor = 1
-A = 2.61e-3; %fitting coefficient A
+A = 2.61e-3; %fitting coefficient A %Brian - how are these choosen? optimized?
 B = 13.3; %fitting coefficient B
-Ufb = 0.18; %0.18; %-0.297; %Flat band potential for the anode (V_SHE or V_RHE, make sure to specify in the above code)
+Ufb = 0.18; %-0.297; %Flat band potential for the anode (V_SHE or V_RHE, make sure to specify in the above code)
 e = 1.60217e-19; %elementary charge (C)
 n0 = 3.01e25; %1e24;  %electron donor density (m-3)
 eps0 = 8.85e-12; %Permittivity of free space (A.s.V-1.m-1)
@@ -48,7 +53,7 @@ epsR = 20.1; %68;  %relative permittivity of the photoanode
 
 ja0 = 5.56e-3; %3.8e-3;  %anode exchange current density A.m-2
 alpha_a = 0.214; %0.18; %(3.7895e-3)*2;
-Eaeq = 1.23; %pH-dependent equilibrium potential for HER in RHE
+Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 
 %-------------USER INPUT PARAMETERS END---------------------------------
 
@@ -56,8 +61,10 @@ Eaeq = 1.23; %pH-dependent equilibrium potential for HER in RHE
 %------------------------CALCULATIONS-----------------------------------
 %--------------------Cathode Calculations-------------------------------
 
-%HER Reaction overpotential (use tafel equation)
-V_her = [-2:vStepSize:min(V), V];
+%HER Reaction overpotential (use tafel equation relating echem rxn rate with overpotential)
+V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
+%to -2 %Brian -- Why is this used and not just V?
+%V_her = V;
 if convertToSHE == true
     Eceq_SHE = Eceq - (0.0592*pH);
     eta_c = V_her - Eceq_SHE;
@@ -71,25 +78,27 @@ jHER = jc0.*exp(bc.*eta_c);
 jc_ohm = jc_cond.*(V/(t_c)); %this is in absolute voltage as well
 
 %--------------------PhotoAnode Calculations-----------------------------
-%Photocurrent
-eta_ph = V-Ufb;
+%Photocurrent - Gaertner-Butler equation
+eta_ph = V-Ufb; %overpotential of the photocurrent
 vMinusUfbPowerHalf = real((V-Ufb).^0.5);
 Phi_surf = (A.*exp(B.*(eta_ph)))./(1+(A.*exp(B.*(eta_ph)))); %determine phi_surf utilising fitting method in Hankins et al.    
+%Surface recombination is a function of bandbending
 
 if isFrontIlluminated == true
     [sumFluxTimesA, J_limit] = getSumFluxTimesAFront(PECActiveLayerThickness);
 elseif isFrontIlluminated == false
     [sumFluxTimesA, J_limit] = getSumFluxTimesABack(PECActiveLayerThickness, PVActiveLayerThickness);
 end
-ja_withabs = (((2*e*(sumFluxTimesA^2)*epsR*eps0*(1/n0))^0.5).*vMinusUfbPowerHalf).*Phi_surf;
-ja_ph = ja_withabs./(1+(ja_withabs./J_limit));
+ja_withabs = (((2*e*(sumFluxTimesA^2)*epsR*eps0*(1/n0))^0.5).*vMinusUfbPowerHalf).*Phi_surf; %Core G-B equation
+ja_ph = ja_withabs./(1+(ja_withabs./J_limit)); %G-B modified to account for limitation when all absorbed photons are contributing to the photcurrent density
 
 
 %dark current -- must make sure the electrode potentials are in the same
 %Voltage to add them up in parallel and make ja_dark a function of band
 %bending
 Eaeq_SHE = Eaeq - (0.0592*pH);
-eta_a = eta_ph + Ufb - Eaeq_SHE ;
+eta_a = V - Eaeq_SHE ;
+%eta_a = eta_ph + Ufb - Eaeq_SHE ;
 ba =  (alpha_a*96485)/(R*T);
 ja_dark = ja0.*exp(ba.*(eta_a));
 
@@ -104,8 +113,8 @@ je_ohm = je_cond.*(V./t_e);
 
 
 % %-------------------Substrate Calculations--------------------------------
-jm_cond = 0.1*100; %conductivity of the electrolyte A.V-1.m-1
-t_m = 100e-9; %thickness of the electrolyte layer in m
+jm_cond = 0.1*100; %conductivity of the substrate A.V-1.m-1
+t_m = 100e-9; %thickness of the substrate layer in m
 
 jm_ohm = jm_cond.*(V./t_m);
 
@@ -116,24 +125,22 @@ jm_ohm = jm_cond.*(V./t_m);
 %minJ = max([min(abs(je_ohm)), min(abs(jm_ohm)), min(abs(ja)), min(abs(jc_ohm)), min(abs(jHER))]);
 maxJ = 200;
 minJ = 3.187;
-jMapVect = minJ:((maxJ-minJ)/1000):maxJ ; %create J vector
+jMapVect = minJ:((maxJ-minJ)/1000):maxJ; %create J vector
 
-[jc_ohm_unique, jc_ind] = unique(jc_ohm);
+[jc_ohm_unique, jc_ind] = unique(jc_ohm); %voltage contribution for cathode ohmic overpotential
 jc_ohm_V = interp1(jc_ohm_unique, V(jc_ind), jMapVect, 'linear', 'extrap');
 
-[jm_ohm_unique, jm_ind] = unique(jm_ohm);
+[jm_ohm_unique, jm_ind] = unique(jm_ohm); %voltage contribution for substrate overpotential
 jm_ohm_V = interp1(jm_ohm_unique, V(jm_ind), jMapVect, 'linear', 'extrap');
 
-[je_ohm_unique, je_ind] = unique(je_ohm);
+[je_ohm_unique, je_ind] = unique(je_ohm); %voltage contribution for electrolyte overpotential
 je_ohm_V = interp1(je_ohm_unique, V(je_ind), jMapVect, 'linear', 'extrap');
 
-[jHER_unique, jHER_ind] = unique(jHER);
+[jHER_unique, jHER_ind] = unique(jHER); %voltage contribution for cathodic reaction overpotential
 jHER_V = interp1(jHER_unique, eta_c(jHER_ind), jMapVect, 'linear', 'extrap');
 
-[ja_unique, ja_ind] = unique(ja);
+[ja_unique, ja_ind] = unique(ja); %voltage contribution for anodic reaction overpotential
 ja_V = interp1(ja_unique, eta_ph(ja_ind), jMapVect, 'linear', 'extrap');
-
-
 
 %add the curves together
 PECV = deltaU + ja_V + jc_ohm_V  + (1.*je_ohm_V) + abs(jHER_V) + jm_ohm_V;
@@ -226,10 +233,10 @@ if plotIndJV == true
     xlabel('\eta_p_h (E_a - U_f_b) (V)')
     ylabel('Current Density, j (A/m2)')
     
-    BiVO4file = fopen('BiVO4_DC.txt');
-    BiVO4DCData = textscan(BiVO4file, '%f %f', 'HeaderLines', 0);
-    BiVO4DC = [BiVO4DCData{1}.'; BiVO4DCData{2}.'];
-    fclose(BiVO4file);
+%     BiVO4file = fopen('BiVO4_DC.txt');
+%     BiVO4DCData = textscan(BiVO4file, '%f %f', 'HeaderLines', 0);
+%     BiVO4DC = [BiVO4DCData{1}.'; BiVO4DCData{2}.'];
+%     fclose(BiVO4file);
     
     figure
     plot(V, ja_dark, 'DisplayName', 'Anodic Dark Current','LineWidth', 1.5)
@@ -343,8 +350,8 @@ legend
 grid on
 %-------------------END OF PLOTTING DATA------------------------------
 
-save(append(fileName, '_data'));
-simulationFigures = findobj('Type','Figure');
-savefig(simulationFigures, append( fileName, '_figures.fig'));
+% save(append(fileName, '_data'));
+% simulationFigures = findobj('Type','Figure');
+% savefig(simulationFigures, append( fileName, '_figures.fig'));
 
 end 

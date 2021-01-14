@@ -50,7 +50,7 @@
 function [Absorption, Reflection, Transmission, absCoeff, activeLayer, lambda]= TransferMatrixPV(activelayerthickness)
 %------------BEGIN USER INPUT PARAMETERS SPECITIFCATION---------------
 %
-lambda=300:1:900; % Wavelengths over which field patterns are calculated
+lambda = 300:1:900; % Wavelengths over which field patterns are calculated
 stepsize = 1;   % The electric field is calculated at a latice of points (nm)
                 % in the device cross section seperated by this distance
 
@@ -59,7 +59,7 @@ stepsize = 1;   % The electric field is calculated at a latice of points (nm)
 % values to the array. Values must be within the range of calculated
 % wavelengths (ie. must be an element of the lambda array). All wavelengths
 % are in nanometers.
-plotWavelengths = [550 650 700];
+plotWavelengths = [450 700];
 
 % Specify Layers in device (an arbitrary number of layers is permitted) and 
 % thicknesses.
@@ -74,13 +74,13 @@ plotWavelengths = [550 650 700];
 % of the device.  The layer thicknesses are in nanometers.
 fileName = 'nil';
 
-layers =  { 'glass' 'ITO' 'PEDOTPSS' 'PBDBT-ITIC_d3' 'Al'}; % Names of layers of materials starting from side light is incident from
-thicknesses = [0 100 30 activelayerthickness 100];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
+layers =  { 'glass' 'ITO' 'cSi_d12' 'Al'}; % Names of layers of materials starting from side light is incident from
+thicknesses = [0 100 activelayerthickness 10];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
 % Set plotGeneration to 'true' if you want to plot generation rate as a
 % function of position in the device and output the calculated short circuit current
 % under AM1.5G illumination (assuming 100% internal quantum efficiency)
 plotGeneration = true;
-activeLayer = 4;
+activeLayer = 3;
 
 isThereAg = false;
 
@@ -261,7 +261,7 @@ if plotGeneration == true
 
     % outputs predicted Jsc under AM1.5 illumination assuming 100% internal
     % quantum efficiency at all wavelengths
-    Jsc=sum(Gx)*stepsize*1e-7*q*1e3 %in mA/cm^2
+    Jsc = sum(Gx)*stepsize*1e-7*q*1e3 %in mA/cm^2
 
     % Calculate parasitic absorption
 %     parasitic_abs=(1-Reflection-Absorption(activeLayer,:))';
@@ -367,21 +367,21 @@ nkarray=textscan(nkfile,'%f %f %f','HeaderLines', 0);
 fclose(nkfile);
 % Load index of refraction data in spread sheet, will crash if misspelled
 file_wavelengths=nkarray{1}*1e9;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
-if (strfind(name,'P3HT'))
-% file_wavelengths=nkarray{1}*1e9+30;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
-end
+% if (strfind(name,'P3HT'))
+% % file_wavelengths=nkarray{1}*1e9+30;%IndRefr(:,strmatch('Wavelength',IndRefr_names));
+% end
 n=nkarray{2};%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
 k=nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-if (strfind(name,'P3HT'))
-% n=nkarray{2}+1.5;%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
-
-% k=max(nkarray{3},0.001);%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-% k=nkarray{3}+0.9*nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
-
-end
+% if (strfind(name,'P3HT'))
+% % n=nkarray{2}+1.5;%IndRefr(:,strmatch(strcat(name,'_n'),IndRefr_names));
+% 
+% % k=max(nkarray{3},0.001);%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
+% % k=nkarray{3}+0.9*nkarray{3};%IndRefr(:,strmatch(strcat(name,'_k'),IndRefr_names));
+% 
+% end
 % Interpolate/Extrapolate data linearly to desired wavelengths
 n_interp=interp1(file_wavelengths, n, wavelengths, 'linear', 'extrap');
 k_interp=interp1(file_wavelengths, k, wavelengths, 'linear', 'extrap');
 
 %Return interpolated complex index of refraction data
-ntotal = n_interp+1i*k_interp; 
+ntotal = n_interp + 1i*k_interp; 

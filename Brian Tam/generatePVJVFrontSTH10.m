@@ -31,8 +31,8 @@ Rsh = 1e5;
 %Rsh = inf;
 
 %series resistance is estimated at the slope near the Voc
-Rs = 0.01 %series resistance (milliOhms/cm2)
-Rs = 0.0075;
+Rs = 0.01; %series resistance (milliOhms/cm2)
+%Rs = 0.0075;
 %get adjusted Jsc
 
 [~, ~, PEC_transmission, ~, ~, lambdaPEC, ~]  = TransferMatrixPEC(PECActiveLayerThickness);
@@ -81,13 +81,13 @@ totalAbsorption = PEC_transmission.*PVAbsorption;
 EQEmod = totalAbsorption.*IQE;
 
 figure
-plot(lambdaPEC, EQEmod,'DisplayName' ,'modified EQE', 'LineWidth', 2);
+plot(lambdaPEC, EQEmod,'DisplayName' ,'modified EQE', 'LineWidth', 4);
 hold on
 % plot(EQE(1,:), EQE(2,:), 'DisplayName', 'Unmodified artificial EQE', 'LineWidth', 2);
 % hold on
 % plot(lambdaPV, EQEinterp, 'DisplayName', 'Interpolated digitised EQE', 'LineStyle', ':')
 % hold on
-plot(lambdaPEC, totalAbsorption.*100, 'DisplayName', 'Modified Absorption of PV Cell', 'LineWidth', 2)
+plot(lambdaPEC, totalAbsorption.*100, 'DisplayName', 'Modified Absorption of PV Cell', 'LineWidth', 3)
 hold on
 plot(lambdaPEC, PVAbsorption.*100, 'DisplayName', 'PV active layer absorption', 'LineWidth', 2)
 hold on
@@ -101,7 +101,7 @@ title('Absorption/Transmission Profiles and Unmodified/Modified EQE Spectra')
 grid on
 
 %get adjusted Jsc
-data = load('spectrum.mat'); % in ./Data
+data = load('spectrum.mat'); % in ./Data Solar spectrum
 fluxLambda=data.fluxLambda; %in mA/cm2.nm1
 lambda1=data.lambda;
     
@@ -110,7 +110,7 @@ plot(lambda1, fluxLambda);
 
 % fluxLambdaInterp = interp1(lambda1, fluxLambda, lambdaPV, 'linear', 'extrap');
 fluxLambdaInterp = interp1(lambda1, fluxLambda, lambdaPEC, 'linear', 'extrap');
-Jsc = trapz(lambdaPEC,EQEmod.*fluxLambdaInterp)./100; %in mA/cm2
+Jsc = trapz(lambdaPEC,EQEmod.*fluxLambdaInterp)./100 %in mA/cm2 trapezoidal integration 
 
 OriginalEQE = PVAbsorption.*IQE;
 OriginalJsc = trapz(lambdaPEC, OriginalEQE.*fluxLambdaInterp)./100; %mA/cm2

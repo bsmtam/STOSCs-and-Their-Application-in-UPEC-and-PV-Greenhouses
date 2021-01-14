@@ -73,8 +73,8 @@ plotWavelengths = [450 700];
 % layers are on the reflective electrode (rather than transparent electrode) side 
 % of the device.  The layer thicknesses are in nanometers.
 
-layers = {'glass'  'FTO_PEC' 'BiVO4'  'water' 'glass'}; % Names of layers of materials starting from side light is incident from
-thicknesses = [1000 100 activelayerthickness 1000 1000];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
+layers = {'glass'  'FTO_PEC' 'hematite'  'water' 'glass'}; % Names of layers of materials starting from side light is incident from
+thicknesses = [0 100 activelayerthickness 0 0];  % thickness of each corresponding layer in nm (thickness of the first layer is irrelevant)
 % Set plotGeneration to 'true' if you want to plot generation rate as a
 % function of position in the device and output the calculated short circuit current
 % under AM1.5G illumination (assuming 100% internal quantum efficiency)
@@ -213,11 +213,9 @@ if plotGeneration == true
     % 86 p.487 Eq 22)
     ActivePos=find(x_mat == activeLayer);
     Q=repmat(a(activeLayer,:).*real(n(activeLayer,:)).*AM15,length(ActivePos),1).*(abs(E(ActivePos,:)).^2);
-
     % Exciton generation rate per second-cm3-nm at each position and wavelength
     Gxl=(Q*1e-3).*repmat(lambda*1e-9,length(ActivePos),1)/(h*c);
 %     Gxl=1.*repmat(lambda*1e-9,length(ActivePos),1)/(h*c);
-
     if length(lambda)==1
         lambdastep= 1;
     else
@@ -232,8 +230,7 @@ if plotGeneration == true
     for matindex=2:length(t)
         line([sum(t(1:matindex)) sum(t(1:matindex))],[0 axislimit3(4)]);
          text((t_cumsum(matindex)+t_cumsum(matindex-1))/2,0,layers{matindex},'HorizontalAlignment','center','VerticalAlignment','bottom')
-     end
- 
+    end
      title('Generation Rate in Device') 
      xlabel('Position in Device (nm)');
      ylabel('Generation rate /(sec-cm^3)');
@@ -379,4 +376,4 @@ n_interp = interp1(file_wavelengths, n, wavelengths, 'linear', 'extrap');
 k_interp = interp1(file_wavelengths, k, wavelengths, 'linear', 'extrap');
 
 %Return interpolated complex index of refraction data
-ntotal = n_interp+1i*k_interp; 
+ntotal = n_interp + 1i*k_interp; 

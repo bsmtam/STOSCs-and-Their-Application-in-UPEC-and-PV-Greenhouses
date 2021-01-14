@@ -1,10 +1,10 @@
-%gets the sum of the photon flux and the absorption coefficient for front
+%gets the sum of the photon flux and the absorption coefficient for back
 %illumination, NOTE: you need to be in the main folder and add this
 %function to that path for it to work (dont be in the PEC folder)
 function [sumFluxTimesA, absorbedFluxCurrentLimit] = getSumFluxTimesABack(PECactivelayerthickness, PVactivelayerthickness)
 fileName = 'nil';
 
-[PECabsorption, ~, ~, PECabsCoeff, PECactiveLayer, lambdaPEC, maxJsc]  = TransferMatrixPEC(PECactivelayerthickness);
+[PECabsorption, ~, ~, PECabsCoeff, PECactiveLayer, lambdaPEC, ~]  = TransferMatrixPEC(PECactivelayerthickness);
 [~, ~,PVtransmission,~, ~, lambdaPV]= TransferMatrixPV(PVactivelayerthickness); 
 
 PVTransInterp = interp1(lambdaPV, PVtransmission, lambdaPEC, 'linear', 'extrap');
