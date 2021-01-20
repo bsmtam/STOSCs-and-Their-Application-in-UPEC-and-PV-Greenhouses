@@ -1,22 +1,37 @@
-%PECJV is in terms of V vs RHE and A/m2
-function PECJV = generatePECJV10STH(PECThickness)
-%PEC Electrical Model (Assume front illuminated)
-deviceName = 'PEC_hematite_front_illuminated'
 
+%PECJV is in terms of V and A/m2
+function PECJV = generatePECJV10STH(isFrontIlluminatedOrNot, PECThickness, PVThickness)
+%PEC Electrical Model (Assume front illuminated for now)
+deviceName = 'PEC_hematite'
+
+if isFrontIlluminatedOrNot == 1
+    fileName = append(deviceName, '_FrontIlluminated');
+elseif isFrontIlluminatedOrNot == 0
+    fileName = append(deviceName, '_BackIlluminated');
+end
 %--------------------USER INPUT PARAMETERS------------------------------
 %Options
-showHankinsPlots = 1; %shows the figure that verifies that the model can replicate the same results given in the Hankins et al. paper
+showHankinsPlots = 0; %shows the figure that verifies that the model can replicate the same results given in the Hankins et al. paper
 plotIndJV = 1; %whether or not you want to plot the JV curves of each individual component of the PEC
 showInterpPlots = 0; %shows the interpolated values of each JV curve based on J vector
+isFrontIlluminated = isFrontIlluminatedOrNot; %whether or not PV-PEC tandem is back or front illuminated
 PECActiveLayerThickness = PECThickness; %in nm
+PVActiveLayerThickness = PVThickness; %in nm
 
 %--------------------Overall Model Parameters---------------------------
 vStepSize = 0.01; %step size for voltage that each JV curve for each component will be evaluated on
 V = 0:vStepSize:2; %voltage range that each JV curve for each component will be evaluated on
 pH = 13.9; %6.7;
 
-deltaU = 0.6; %0.42; %this is the additional thermodynamic potential provided by the external bias
+deltaU = 0.6; %0.42; %0.6;%this is the additional thermodynamic potential provided by the external bias
 %to provide for the PEC system in question
+% Brian - 0.6 is wrong. It assumes it's counting from 0 Vs RHE, but in this
+% calculation it's counting from the Ufb, so, here Ufb is set as 0.18 from
+% Anna's paper I assume and it's 0.18 vs RHE. so the real delta U =
+% 0.6-0.18 = 0.42  ~~ unless 0.6 is the onset for hematite ?????
+%note in AHmmm it is a shift of 0.6 between dark current and photocurrent
+%I think main problem is the graph is vs overpotential is vs (1.23+0.16) vs
+%RHE
 
 %----------------------Cathode Parameters-------------------------------
 jc0 = 3.1; %AHmmm %exchange current density for the hydrogen evolution reaction (A.m-2)
@@ -25,8 +40,10 @@ R = 8.314; %universal gas constant (J.mol-1.K-1)
 T = 298.15; %temperature (K)
 F = 96485; %Faraday's constant (C.mol-1)
 Eceq = 0; %pH-dependent equilibrium potential for HER (Assume RHE)
+convertToSHE = false; % is the eqilibrium potential for HER given in RHE or SHE?
 jc_cond = 1.8e6; %conductivity (A.V-1.m-1) %AHmmm
 t_c = 0.1/1000; %thickness of cathode in m (need to get this info)
+
 
 %------------------Photoanode Parameters-----------------------------------
 %Phi_surf = ones(size(V)); %surface recombination factor = 1
@@ -39,9 +56,9 @@ eps0 = 8.85e-12; %Permittivity of free space (A.s.V-1.m-1)
 epsR = 38.2; %AHmmm 20.1; %68;  %relative permittivity of the photoanode
 ja0 = 5.56e-3; %AHmmm %3.8e-3;  %anode exchange current density A.m-2 
 
-%%%%%% ba = 0.295; %Tafel coefficient from AHmmm
-%%%%%% ba =  (alpha_a*96485)/(R*T); %Tafel coefficient
-alpha_a = 7.5789e-3; %0.18;0.214;  % ; <--from AHmmm 
+%ba = 0.295; %Tafel coefficient from AHmmm
+alpha_a = (3.7895e-3)*2; %0.18;0.214;  % ; <--- what is this number. /from AHmmm should be this, 7.5789e-3
+%ba =  (alpha_a*96485)/(R*T); %Tafel coefficient
 Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 
 %-------------USER INPUT PARAMETERS END---------------------------------
@@ -53,8 +70,14 @@ Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 %HER Reaction overpotential (use Tafel equation relating echem rxn rate with overpotential)
 V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
 %to -2 %Brian -- Why is this used and not just V?
-eta_c = V_her - Eceq; %overpotential for HER reaction, this is a difference so this is in absolute voltage. 
-bc = (-alpha_c*F)/(R*T);
+%V_her = V;
+if convertToSHE == true
+    Eceq_SHE = Eceq - (0.0592*pH);
+    eta_c = V_her - Eceq_SHE;
+elseif convertToSHE == false
+    eta_c = V_her - Eceq; %overpotential for HER reaction, this is a difference so this is in absolute voltage. 
+end
+bc = (-alpha_c*96485)/(R*T);
 jHER = jc0.*exp(bc.*eta_c);
 
 %Ohmic overpotential
@@ -69,7 +92,11 @@ Phi_surf = (A.*exp(B.*(eta_ph)))./(1+(A.*exp(B.*(eta_ph)))); %determine phi_surf
 %sumFluxTimesA is the attenuation corrected flux density that is actually
 %absorbed
 
-[sumFluxTimesA, J_limit] = getSumFluxTimesAFront(PECActiveLayerThickness);
+if isFrontIlluminated == true
+    [sumFluxTimesA, J_limit] = getSumFluxTimesAFront(PECActiveLayerThickness);
+elseif isFrontIlluminated == false
+    [sumFluxTimesA, J_limit] = getSumFluxTimesABack(PECActiveLayerThickness, PVActiveLayerThickness);
+end
 ja_withabs = (((2*e*(sumFluxTimesA^2)*epsR*eps0*(1/n0))^0.5).*vMinusUfbPowerHalf).*Phi_surf; %Core G-B equation with surf recombination
 ja_ph = ja_withabs./(1+(ja_withabs./J_limit)); %G-B modified to account for limitation when all absorbed photons are contributing to the photcurrent density
 
@@ -85,7 +112,6 @@ ja_dark = ja0.*exp(ba.*(eta_a));
 
 %add the currents together cause they are wired in parallel
 ja = ja_dark + ja_ph;
-
 
 %---------------------Electrolyte Calculations---------------------------
 je_cond = 20.6; %conductivity of the electrolyte A.V-1.m-1, AHmmm 1M NaOH, pH13.9
@@ -125,7 +151,7 @@ jHER_V = interp1(jHER_unique, eta_c(jHER_ind), jMapVect, 'linear', 'extrap');
 ja_V = interp1(ja_unique, eta_ph(ja_ind), jMapVect, 'linear', 'extrap');
 
 %add the curves together
-PECV = deltaU + ja_V + jc_ohm_V + (1.*je_ohm_V) + abs(jHER_V) + jm_ohm_V;
+PECV = deltaU + ja_V + jc_ohm_V  + (1.*je_ohm_V) + abs(jHER_V) + jm_ohm_V;
 PECJV = [PECV; jMapVect];
 %-------------------END OF CALCULATIONS---------------------------------
 
@@ -133,10 +159,10 @@ PECJV = [PECV; jMapVect];
 %------------------PLOTTING OF DATA-------------------------------------
 if showHankinsPlots == true
     figure
-%     plot(ja_uncorrected(1,:), ja_uncorrected(2,:), 'DisplayName', 'Gartner-Butler No Correction', 'LineWidth',2);
-%     hold on
-%     plot(V, ja_recomb, 'DisplayName', 'GB corrected for Recombination', 'LineWidth',2);
-%     hold on
+    plot(ja_uncorrected(1,:), ja_uncorrected(2,:), 'DisplayName', 'Gartner-Butler No Correction', 'LineWidth',2);
+    hold on
+    plot(V, ja_recomb, 'DisplayName', 'GB corrected for Recombination', 'LineWidth',2);
+    hold on
     plot(V, ja_withabs, 'DisplayName', 'GB corrected for Recomb and abs', 'LineWidth',2);
     hold on
     plot(V,ja_ph, 'DisplayName', 'GB corrected for recomb, abs, and with photon flux limitation', 'LineWidth',2);

@@ -86,7 +86,6 @@ ja_dark = ja0.*exp(ba.*(eta_a));
 %add the currents together cause they are wired in parallel
 ja = ja_dark + ja_ph;
 
-
 %---------------------Electrolyte Calculations---------------------------
 je_cond = 20.6; %conductivity of the electrolyte A.V-1.m-1, AHmmm 1M NaOH, pH13.9
 t_e = 2e-3; %thickness of the electrolyte layer in m
@@ -125,7 +124,7 @@ jHER_V = interp1(jHER_unique, eta_c(jHER_ind), jMapVect, 'linear', 'extrap');
 ja_V = interp1(ja_unique, eta_ph(ja_ind), jMapVect, 'linear', 'extrap');
 
 %add the curves together
-PECV = deltaU + ja_V + jc_ohm_V + (1.*je_ohm_V) + abs(jHER_V) + jm_ohm_V;
+PECV = deltaU + ja_V + jc_ohm_V  + (1.*je_ohm_V) + abs(jHER_V) + jm_ohm_V;
 PECJV = [PECV; jMapVect];
 %-------------------END OF CALCULATIONS---------------------------------
 

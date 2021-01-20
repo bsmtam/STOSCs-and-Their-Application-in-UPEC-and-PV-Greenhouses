@@ -82,17 +82,17 @@ EQEmod = totalAbsorption.*IQE;
 
 figure
 plot(lambdaPEC, EQEmod,'DisplayName' ,'modified EQE', 'LineWidth', 4);
-hold on
+% hold on
 % plot(EQE(1,:), EQE(2,:), 'DisplayName', 'Unmodified artificial EQE', 'LineWidth', 2);
 % hold on
 % plot(lambdaPV, EQEinterp, 'DisplayName', 'Interpolated digitised EQE', 'LineStyle', ':')
-% hold on
+hold on
 plot(lambdaPEC, totalAbsorption.*100, 'DisplayName', 'Modified Absorption of PV Cell', 'LineWidth', 3)
 hold on
 plot(lambdaPEC, PVAbsorption.*100, 'DisplayName', 'PV active layer absorption', 'LineWidth', 2)
 hold on
 plot(lambdaPEC, PEC_transmission.*100, 'DisplayName', 'PEC transmission', 'LineWidth', 2)
-hold on
+% hold on
 % plot(lambdaPEC, PECtransInterp.*100, 'DisplayName', 'Interpolated PEC transmission', 'LineStyle', ':')
 legend
 xlabel('Wavelength (nm)')
@@ -135,9 +135,11 @@ voltageStepSize = 0.01;
 %Calculated Parameters
 Vt = (k*T)/q; %thermal voltage (V)
 V  = 0:voltageStepSize:Voc+0.2;
-J0 = Jsc/(exp(Voc/(n*Vt))-1);
+J0 = Jsc/(exp(Voc/(n*Vt))-1); %Brian - where is this equation from?
 
 JV = @(J) Jsc - J0.*(exp((V + J.*Rs)./(n*Vt))-1) - (V + J.*Rs)./Rsh - J;
+% characteristic equation of a solar cell with a series and shunt
+% resistance, current source in parallel with a diode
 
 J_guess = Jsc*ones(size(V));
 J_sol = fsolve(JV, J_guess);
