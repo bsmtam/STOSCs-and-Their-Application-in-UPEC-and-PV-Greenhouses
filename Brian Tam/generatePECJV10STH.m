@@ -7,7 +7,7 @@ deviceName = 'PEC_hematite_front_illuminated'
 %Options
 showHankinsPlots = 1; %shows the figure that verifies that the model can replicate the same results given in the Hankins et al. paper
 plotIndJV = 1; %whether or not you want to plot the JV curves of each individual component of the PEC
-showInterpPlots = 0; %shows the interpolated values of each JV curve based on J vector
+showInterpPlots = 1; %shows the interpolated values of each JV curve based on J vector
 PECActiveLayerThickness = PECThickness; %in nm
 
 %--------------------Overall Model Parameters---------------------------
@@ -41,7 +41,7 @@ ja0 = 5.56e-3; %AHmmm %3.8e-3;  %anode exchange current density A.m-2
 
 %%%%%% ba = 0.295; %Tafel coefficient from AHmmm
 %%%%%% ba =  (alpha_a*96485)/(R*T); %Tafel coefficient
-alpha_a = 7.5789e-3; %0.18;0.214;  % ; <--from AHmmm 
+alpha_a = 0.001; % 0.214; % 7.5789e-3; %0.18;0.214;  % ; <--from AHmmm 
 Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 
 %-------------USER INPUT PARAMETERS END---------------------------------
@@ -51,14 +51,15 @@ Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 %--------------------Cathode Calculations-------------------------------
 
 %HER Reaction overpotential (use Tafel equation relating echem rxn rate with overpotential)
-V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
+V_her = V;
+%V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
 %to -2 %Brian -- Why is this used and not just V?
 eta_c = V_her - Eceq; %overpotential for HER reaction, this is a difference so this is in absolute voltage. 
 bc = (-alpha_c*F)/(R*T);
 jHER = jc0.*exp(bc.*eta_c);
 
 %Ohmic overpotential
-jc_ohm = jc_cond.*(V/(t_c)); %this is in absolute voltage as well
+jc_ohm = jc_cond.*(V_her/(t_c)); %this is in absolute voltage as well
 
 %--------------------PhotoAnode Calculations-----------------------------
 %Photocurrent - Gaertner-Butler equation
@@ -80,7 +81,7 @@ ja_ph = ja_withabs./(1+(ja_withabs./J_limit)); %G-B modified to account for limi
 Eaeq_SHE = Eaeq - (0.0592*pH);
 eta_a = V - Eaeq_SHE ;
 %eta_a = eta_ph + Ufb - Eaeq_SHE ;
-ba =  (alpha_a*96485)/(R*T); %Tafel coefficient
+ba =  (-alpha_a*F)/(R*T); %Tafel coefficient
 ja_dark = ja0.*exp(ba.*(eta_a));
 
 %add the currents together cause they are wired in parallel
