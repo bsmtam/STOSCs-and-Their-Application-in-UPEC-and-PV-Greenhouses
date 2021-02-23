@@ -2,6 +2,7 @@
 function PECJV = generatePECJV10STH(PECThickness)
 %PEC Electrical Model (Assume front illuminated)
 deviceName = 'PEC_hematite_front_illuminated'
+%Thickness Hematite, use 88 nm as min for 10 % STH from WES
 
 %--------------------USER INPUT PARAMETERS------------------------------
 %Options
@@ -32,16 +33,16 @@ t_c = 0.1/1000; %thickness of cathode in m (need to get this info)
 %Phi_surf = ones(size(V)); %surface recombination factor = 1
 A = 2.61e-3; %fitting coefficient A %AHmmm
 B = 13.3; %fitting coefficient B %AHmmm
-Ufb = 0.16; %AHmmm 0.18; %-0.297; %Flat band potential for the anode (V_SHE or V_RHE, make sure to specify in the above code)
+Ufb = 0.18; %0.16; %AHmmm  %-0.297; %Flat band potential for the anode (V_SHE or V_RHE, make sure to specify in the above code)
 e = 1.60217e-19; %elementary charge (C)
-n0 = 2.73e27; %3.01e25; %1e24;  %electron donor density (m-3) %AHmmm-Mott-Schottky, Wes
+n0 = 3.01e25; %AHmMM -->2.73e27; %1e24;  %electron donor density (m-3) %AHmmm-Mott-Schottky, Wes
 eps0 = 8.85e-12; %Permittivity of free space (A.s.V-1.m-1)
-epsR = 38.2; %AHmmm 20.1; %68;  %relative permittivity of the photoanode
+epsR = 20.1; %38.2; <---%AHmmm %68;  %relative permittivity of the photoanode
 ja0 = 5.56e-3; %AHmmm %3.8e-3;  %anode exchange current density A.m-2 
 
 %%%%%% ba = 0.295; %Tafel coefficient from AHmmm
 %%%%%% ba =  (alpha_a*96485)/(R*T); %Tafel coefficient
-alpha_a = 0.001; % 0.214; % 7.5789e-3; %0.18;0.214;  % ; <--from AHmmm 
+alpha_a = 0.214; % 7.5789e-3;<--from AHmmm  %0.18;0.214;  <--Wes 
 Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 
 %-------------USER INPUT PARAMETERS END---------------------------------
@@ -51,15 +52,15 @@ Eaeq = 1.23; %pH-dependent equilibrium potential for OER in RHE
 %--------------------Cathode Calculations-------------------------------
 
 %HER Reaction overpotential (use Tafel equation relating echem rxn rate with overpotential)
-V_her = V;
-%V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
+%V_her = V;
+V_her = [-2:vStepSize:min(V), V]; % cathode potential - and extension of V
 %to -2 %Brian -- Why is this used and not just V?
 eta_c = V_her - Eceq; %overpotential for HER reaction, this is a difference so this is in absolute voltage. 
 bc = (-alpha_c*F)/(R*T);
-jHER = jc0.*exp(bc.*eta_c);
+jHER = jc0.*(bc.*eta_c);  %%% Brian change to match AHmmm
 
 %Ohmic overpotential
-jc_ohm = jc_cond.*(V_her/(t_c)); %this is in absolute voltage as well
+jc_ohm = jc_cond.*(V/(t_c)); %this is in absolute voltage as well
 
 %--------------------PhotoAnode Calculations-----------------------------
 %Photocurrent - Gaertner-Butler equation
@@ -79,12 +80,13 @@ ja_ph = ja_withabs./(1+(ja_withabs./J_limit)); %G-B modified to account for limi
 %Voltage to add them up in parallel and make ja_dark a function of band
 %bending - Use Butler-volmer equation in low overpotential approximation
 Eaeq_SHE = Eaeq - (0.0592*pH);
-eta_a = V - Eaeq_SHE ;
-%eta_a = eta_ph + Ufb - Eaeq_SHE ;
-ba =  (-alpha_a*F)/(R*T); %Tafel coefficient
+%eta_a = eta_ph; %overpotential for the OER
+eta_a = eta_ph + Ufb - Eaeq_SHE ; %Wes
+%ba = (alpha_a*F)/(R*T); %Tafel coefficient
+ba = 7.5; %% Brian from AHmmm %0.295 %%%% KEY 7.5 matches experimental dark current
 ja_dark = ja0.*exp(ba.*(eta_a));
 
-%add the currents together cause they are wired in parallel
+%add the currents together because they are wired in parallel
 ja = ja_dark + ja_ph;
 
 
@@ -106,7 +108,7 @@ jm_ohm = jm_cond.*(V./t_m);
 %find the component with the limiting current to use that for vector
 %maxJ = min([max(je_ohm), max(jm_ohm), max(ja), max(jc_ohm), max(jHER)]); %get the limiting current from all JV curves to determine J vector with
 %minJ = max([min(abs(je_ohm)), min(abs(jm_ohm)), min(abs(ja)), min(abs(jc_ohm)), min(abs(jHER))]);
-maxJ = 100;
+maxJ = 200;
 minJ = 3.187;
 jMapVect = minJ:((maxJ-minJ)/1000):maxJ; %create J vector
 
